@@ -3292,7 +3292,6 @@ class Player extends Human implements CommandSender, InventoryHolder, IPlayer{
 
 	public function setHealth($amount){
 		parent::setHealth($amount);
-		echo $amount . "\n";
 		$this->attributes[Attribute::HEALTH]->setValue($amount);
 		if($this->spawned === true)
 			$this->sendAttributes();

@@ -59,6 +59,7 @@ abstract class Food extends Item implements FoodSource{
 		Server::broadcastPacket($human->getViewers(), $pk);
 
 		$ev = new EntityEatItemEvent($human, $this);
+		$human->getServer()->getPluginManager()->callEvent($ev);
 
 		$human->getAttribute(Attribute::SATURATION)->addValue($ev->getSaturationRestore());
 		$human->setFood($human->getFood() + $ev->getFoodRestore());

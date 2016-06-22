@@ -109,11 +109,11 @@ class Item extends Entity{
 			$this->keepMovement = $this->checkObstruction($this->x, ($this->boundingBox->minY + $this->boundingBox->maxY) / 2, $this->z);
 			$this->move($this->motionX, $this->motionY, $this->motionZ);
 
-			$friction = 1 - $this->drag;
-
-			if($this->onGround and ($this->motionX != 0 or $this->motionZ != 0)){
-				$friction = $this->getLevel()->getBlock(new Vector3($this->getFloorX(), $this->getFloorY() - 1, $this->getFloorZ()))->getFrictionFactor() * $friction;
-			}
+//			$friction = 1 - $this->drag;
+//
+//			if($this->onGround and ($this->motionX != 0 or $this->motionZ != 0)){
+//				$friction = $this->getLevel()->getBlock(new Vector3($this->getFloorX(), $this->getFloorY() - 1, $this->getFloorZ()))->getFrictionFactor() * $friction;
+//			}
 
 			$this->motionX *= $friction;
 			$this->motionY *= 1 - $this->drag;

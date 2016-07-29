@@ -261,6 +261,9 @@ class Player extends Human implements CommandSender, InventoryHolder, IPlayer{
 	protected $identifier;
 	
 	protected $additionalChar;
+	
+	/**@var string*/
+	public $language = 'English';
 
 	/** @var Attribute[] */
 	protected $attributes;
@@ -678,13 +681,20 @@ class Player extends Human implements CommandSender, InventoryHolder, IPlayer{
 	public function sendChunk($x, $z, $payload){
 		if($this->connected === false){
 			return;
+		}		
+		
+		$resIndex = $this->getAdditionalChar() == chr(0xfe) ? 'result15' : 'result';
+		if(isset($payload[$this->language])) {
+			$data = $payload[$this->language][$resIndex];
+		} else {
+			$data = $payload['English'][$resIndex];
 		}
 
 		$this->usedChunks[Level::chunkHash($x, $z)] = true;
 		$this->chunkLoadCount++;
 
 		$pk = new BatchPacket();
-		$pk->payload = $payload;
+		$pk->payload = $data;
 		$pk->encode();
 		$pk->isEncoded = true;
 		$this->dataPacket($pk);
@@ -710,7 +720,7 @@ class Player extends Human implements CommandSender, InventoryHolder, IPlayer{
 			if($count >= $this->chunksPerTick){
 				break;
 			}
-
+			
 			$X = null;
 			$Z = null;
 			Level::getXZ($index, $X, $Z);
@@ -1425,7 +1435,7 @@ class Player extends Human implements CommandSender, InventoryHolder, IPlayer{
 						if($to->distanceSquared($ev->getTo()) > 0.01){ //If plugins modify the destination
 							$this->teleport($ev->getTo());						
 						}else{
-							$this->level->addEntityMovement($this->getViewers(), $this->getId(), $this->x, $this->y + $this->getEyeHeight(), $this->z, $this->yaw, $this->pitch, $this->yaw);
+							$this->level->addEntityMovement($this->getViewers(), $this->getId(), $this->x, $this->y + $this->getVisibleEyeHeight(), $this->z, $this->yaw, $this->pitch, $this->yaw);
 						}
 					}
 				}else{
@@ -1532,6 +1542,7 @@ class Player extends Human implements CommandSender, InventoryHolder, IPlayer{
 			}
 			$this->timings->stopTiming();
 			return $this->deadTicks < 10;
+//			return true;
 		}
 		
 		if($this->spawned){
@@ -1843,6 +1854,8 @@ class Player extends Human implements CommandSender, InventoryHolder, IPlayer{
 				
 				$spawnPosition = $this->getSpawn();
 				
+				$compassPosition = $this->server->getGlobalCompassPosition();
+				
 				$pk = new StartGamePacket();
 				$pk->seed = -1;
 				$pk->dimension = 0;
@@ -1853,9 +1866,9 @@ class Player extends Human implements CommandSender, InventoryHolder, IPlayer{
 //				$pk->spawnY = (int) $spawnPosition->y;
 //				$pk->spawnZ = (int) $spawnPosition->z;
 				/* hack for compass*/
-				$pk->spawnX = 15000;
-				$pk->spawnY = 10;
-				$pk->spawnZ = -1000000;
+				$pk->spawnX = $compassPosition['x'];
+				$pk->spawnY = $compassPosition['y'];
+				$pk->spawnZ = $compassPosition['z'];
 				$pk->generator = 1; //0 old, 1 infinite, 2 flat
 				$pk->gamemode = $this->gamemode & 0x01;
 				$pk->eid = 0;//$this->getId(); //Always use EntityID as zero for the actual player
@@ -2580,6 +2593,8 @@ class Player extends Human implements CommandSender, InventoryHolder, IPlayer{
 				$this->server->getPluginManager()->callEvent($ev);
 				if($ev->isCancelled()){
 					$this->inventory->sendSlot($slot, $this);
+					$this->inventory->setHotbarSlotIndex($slot, $slot);
+					$this->inventory->sendContents($this);
 					//Timings::$timerDropItemPacket->stopTiming();
 					break;
 				}
@@ -3066,7 +3081,7 @@ class Player extends Human implements CommandSender, InventoryHolder, IPlayer{
 			$this->connected = false;
 			if($this->username != ""){
 				$this->server->getPluginManager()->callEvent($ev = new PlayerQuitEvent($this, $message, $reason));
-				if($this->server->getAutoSave() and $this->loggedIn === true){
+				if($this->server->getSavePlayerData() and $this->loggedIn === true){
 					$this->save();
 				}
 			}
@@ -3160,6 +3175,15 @@ class Player extends Human implements CommandSender, InventoryHolder, IPlayer{
 	 */
 	public function getName(){
 		return $this->username;
+	}
+	
+	public function freeChunks(){
+		foreach ($this->usedChunks as $index => $chunk) {
+			Level::getXZ($index, $x, $z);
+			$this->level->freeChunk($x, $z, $this);
+			unset($this->usedChunks[$index]);
+			unset($this->loadQueue[$index]);
+		}
 	}
 
 	public function kill(){
@@ -3263,7 +3287,9 @@ class Player extends Human implements CommandSender, InventoryHolder, IPlayer{
 		Entity::kill();
 
 		$this->server->getPluginManager()->callEvent($ev = new PlayerDeathEvent($this, $this->getDrops(), $message));
-
+		
+		$this->freeChunks();
+		
 		if(!$ev->getKeepInventory()){
 			foreach($ev->getDrops() as $item){
 				$this->level->dropItem($this, $item);
@@ -3439,13 +3465,13 @@ class Player extends Human implements CommandSender, InventoryHolder, IPlayer{
 			$chunkX = $this->teleportPosition->x >> 4;
 			$chunkZ = $this->teleportPosition->z >> 4;
 
-			for($X = -1; $X <= 1; ++$X){
-				for($Z = -1; $Z <= 1; ++$Z){
-					if(!isset($this->usedChunks[$index = Level::chunkHash($chunkX + $X, $chunkZ + $Z)]) or $this->usedChunks[$index] === false){
-						return false;
-					}
-				}
-			}
+//			for($X = -1; $X <= 1; ++$X){
+//				for($Z = -1; $Z <= 1; ++$Z){
+//					if(!isset($this->usedChunks[$index = Level::chunkHash($chunkX + $X, $chunkZ + $Z)]) or $this->usedChunks[$index] === false){
+//						return false;
+//					}
+//				}
+//			}
 
 			$this->sendPosition($this, $this->pitch, $this->yaw, 1);
 			$this->forceMovement = $this->teleportPosition;
@@ -3571,6 +3597,10 @@ class Player extends Human implements CommandSender, InventoryHolder, IPlayer{
 	
 	public function getAdditionalChar() {
 		return $this->additionalChar;
+	}
+	
+	public function getVisibleEyeHeight() {
+		return $this->eyeHeight;
 	}
 	
 }

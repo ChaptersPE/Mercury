@@ -34,7 +34,6 @@ use pocketmine\nbt\tag\LongTag;
 use pocketmine\Player;
 use pocketmine\utils\Binary;
 use pocketmine\utils\BinaryStream;
-use pocketmine\entity\Human;
 
 class Chunk extends BaseFullChunk{
 

@@ -30,11 +30,12 @@ use pocketmine\nbt\tag\CompoundTag;
 use pocketmine\nbt\tag\IntTag;
 use pocketmine\nbt\tag\LongTag;
 use pocketmine\nbt\tag\StringTag;
+use pocketmine\network\protocol\FullChunkDataPacket;
 use pocketmine\tile\Spawnable;
 
+use pocketmine\utils\BinaryStream;
 use pocketmine\utils\ChunkException;
-use pocketmine\tile\Sign;
-use pocketmine\tile\Tile;
+use raklib\Binary;
 
 class McRegion extends BaseLevelProvider{
 
@@ -119,23 +120,9 @@ class McRegion extends BaseLevelProvider{
 			throw new ChunkException("Invalid Chunk sent");
 		}
 
-		$signTiles = [];
-		$translation = $this->getServer()->getSignTranslation();
-		foreach ($translation as $lang => $data) {
-			$signTiles[$lang] = '';
-		}
-
 		$tiles = "";
 		$nbt = new NBT(NBT::LITTLE_ENDIAN);
 		foreach($chunk->getTiles() as $tile){
-			if($tile instanceof Sign) {
-				foreach ($translation as $lang => $data) {
-					$nbt->setData($this->getSignSpawnCompound($tile, $data));
-					$signTiles[$lang] .= $nbt->write();
-				}
-
-				continue;
-			}
 			if($tile instanceof Spawnable){
 				$nbt->setData($tile->getSpawnCompound());
 				$tiles .= $nbt->write();
@@ -146,7 +133,6 @@ class McRegion extends BaseLevelProvider{
 		$data['chunkX'] = $x;
 		$data['chunkZ'] = $z;
 		$data['tiles'] = $tiles;
-		$data['signTiles'] = $signTiles;
 		$data['chunk'] = $chunk->toFastBinary();
 
 		$this->getLevel()->chunkMaker->pushMainToThreadPacket(serialize($data));

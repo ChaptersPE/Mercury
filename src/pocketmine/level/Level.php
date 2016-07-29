@@ -669,7 +669,7 @@ class Level implements ChunkManager, Metadatable{
 		}
 		
 		while(($data = unserialize($this->chunkMaker->readThreadToMainPacket()))){
-			$this->chunkRequestCallback($data['chunkX'], $data['chunkZ'], $data);
+			$this->chunkRequestCallback($data['chunkX'], $data['chunkZ'], $data['result'], $data['result15']);
 		}
 		$this->timings->doTick->stopTiming();
 	}
@@ -1217,13 +1217,6 @@ class Level implements ChunkManager, Metadatable{
 			}
 		}
 	}
-	
-	public function chunkCacheClear($x, $z){
-		$index = PHP_INT_SIZE === 8 ? (($x & 0xFFFFFFFF) << 32) | ($z & 0xFFFFFFFF) : $x . ":" . $z;
-		if(ADVANCED_CACHE == true){
-			Cache::remove("world:" . $this->getId() . ":" . $index);
-		}
-	}
 
 	/**
 	 * Sets on Vector3 the data from a Block object,
@@ -1513,19 +1506,13 @@ class Level implements ChunkManager, Metadatable{
 		if($hand->isSolid() === true and $hand->getBoundingBox() !== null){
 			$entities = $this->getCollidingEntities($hand->getBoundingBox());
 			$realCount = 0;
-			foreach ($entities as $e) {
-				if ($e instanceof Arrow or $e instanceof DroppedItem) {
+			foreach($entities as $e){
+				if($e instanceof Arrow or $e instanceof DroppedItem){
 					continue;
 				}
-				if ($e instanceof Player && $e->isSpectator()) {
+				if($e instanceof Player && $e->isSpectator()){
 					continue;
 				}
-				if ($e == $player) {
-					if (round($player->getY()) != round($hand->getY()) && round($player->getY() + 1) != round($hand->getY())) {
-						continue;
-					}
-				}
-
 				++$realCount;
 			}
 
@@ -2057,7 +2044,7 @@ class Level implements ChunkManager, Metadatable{
 					/** @var Player[] $players */
 					foreach($players as $player){
 						if($player->isConnected() and isset($player->usedChunks[$index])){
-							$player->sendChunk($x, $z, $cache);
+							$player->sendChunk($x, $z, ($player->getAdditionalChar() == chr(0xfe) ? $cache15 : $cache));
 						}
 					}
 					unset($this->chunkSendQueue[$index]);
@@ -2076,17 +2063,18 @@ class Level implements ChunkManager, Metadatable{
 		}
 	}
 
-	public function chunkRequestCallback($x, $z, $payload){
+	public function chunkRequestCallback($x, $z, $payload, $payload15){
 		$index = PHP_INT_SIZE === 8 ? ((($x) & 0xFFFFFFFF) << 32) | (( $z) & 0xFFFFFFFF) : ($x) . ":" . ( $z);
 		if(isset($this->chunkSendTasks[$index])){
 
 			if(ADVANCED_CACHE == true){
 				Cache::add("world:" . $this->getId() . ":" . $index, $payload, 60);
+//				Cache::add("world15:" . $this->getId() . ":" . $index, $payload15, 60);
 			}
 			foreach($this->chunkSendQueue[$index] as $player){
 				/** @var Player $player */
 				if($player->isConnected() and isset($player->usedChunks[$index])){
-					$player->sendChunk($x, $z, $payload);
+					$player->sendChunk($x, $z, ($player->getAdditionalChar() == chr(0xfe) ? $payload15 : $payload));
 					
 				}
 			}

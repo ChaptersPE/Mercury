@@ -261,9 +261,6 @@ class Player extends Human implements CommandSender, InventoryHolder, IPlayer{
 	protected $identifier;
 	
 	protected $additionalChar;
-	
-	/**@var string*/
-	public $language = 'English';
 
 	/** @var Attribute[] */
 	protected $attributes;
@@ -681,20 +678,13 @@ class Player extends Human implements CommandSender, InventoryHolder, IPlayer{
 	public function sendChunk($x, $z, $payload){
 		if($this->connected === false){
 			return;
-		}		
-		
-		$resIndex = $this->getAdditionalChar() == chr(0xfe) ? 'result15' : 'result';
-		if(isset($payload[$this->language])) {
-			$data = $payload[$this->language][$resIndex];
-		} else {
-			$data = $payload['English'][$resIndex];
 		}
 
 		$this->usedChunks[Level::chunkHash($x, $z)] = true;
 		$this->chunkLoadCount++;
 
 		$pk = new BatchPacket();
-		$pk->payload = $data;
+		$pk->payload = $payload;
 		$pk->encode();
 		$pk->isEncoded = true;
 		$this->dataPacket($pk);
@@ -720,7 +710,7 @@ class Player extends Human implements CommandSender, InventoryHolder, IPlayer{
 			if($count >= $this->chunksPerTick){
 				break;
 			}
-			
+
 			$X = null;
 			$Z = null;
 			Level::getXZ($index, $X, $Z);
@@ -1435,7 +1425,7 @@ class Player extends Human implements CommandSender, InventoryHolder, IPlayer{
 						if($to->distanceSquared($ev->getTo()) > 0.01){ //If plugins modify the destination
 							$this->teleport($ev->getTo());						
 						}else{
-							$this->level->addEntityMovement($this->getViewers(), $this->getId(), $this->x, $this->y + $this->getVisibleEyeHeight(), $this->z, $this->yaw, $this->pitch, $this->yaw);
+							$this->level->addEntityMovement($this->getViewers(), $this->getId(), $this->x, $this->y + $this->getEyeHeight(), $this->z, $this->yaw, $this->pitch, $this->yaw);
 						}
 					}
 				}else{
@@ -1542,7 +1532,6 @@ class Player extends Human implements CommandSender, InventoryHolder, IPlayer{
 			}
 			$this->timings->stopTiming();
 			return $this->deadTicks < 10;
-//			return true;
 		}
 		
 		if($this->spawned){
@@ -3176,7 +3165,7 @@ class Player extends Human implements CommandSender, InventoryHolder, IPlayer{
 	public function getName(){
 		return $this->username;
 	}
-	
+
 	public function freeChunks(){
 		foreach ($this->usedChunks as $index => $chunk) {
 			Level::getXZ($index, $x, $z);

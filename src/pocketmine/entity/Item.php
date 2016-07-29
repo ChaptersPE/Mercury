@@ -28,7 +28,7 @@ use pocketmine\event\entity\ItemSpawnEvent;
 use pocketmine\item\Item as ItemItem;
 use pocketmine\math\Vector3;
 use pocketmine\nbt\tag\ByteTag;
-use pocketmine\nbt\tag\Compound;
+use pocketmine\nbt\tag\CompoundTag;
 use pocketmine\nbt\tag\ShortTag;
 use pocketmine\nbt\tag\StringTag;
 use pocketmine\network\Network;
@@ -48,8 +48,7 @@ class Item extends Entity{
 	public $length = 0.25;
 	public $height = 0.25;
 	protected $gravity = 0.04;
-//	protected $drag = 0.02;
-	protected $drag = 0.15;
+	protected $drag = 0.02;
 
 	public $canCollide = false;
 
@@ -75,7 +74,6 @@ class Item extends Entity{
 
 		$this->server->getPluginManager()->callEvent(new ItemSpawnEvent($this));
 	}
-
 
 	public function attack($damage, EntityDamageEvent $source){
 		if(
@@ -111,15 +109,15 @@ class Item extends Entity{
 			$this->keepMovement = $this->checkObstruction($this->x, ($this->boundingBox->minY + $this->boundingBox->maxY) / 2, $this->z);
 			$this->move($this->motionX, $this->motionY, $this->motionZ);
 
-			$friction = 1 - $this->drag;
+//			$friction = 1 - $this->drag;
+//
+//			if($this->onGround and ($this->motionX != 0 or $this->motionZ != 0)){
+//				$friction = $this->getLevel()->getBlock(new Vector3($this->getFloorX(), $this->getFloorY() - 1, $this->getFloorZ()))->getFrictionFactor() * $friction;
+//			}
 
-			if($this->onGround and ($this->motionX != 0 or $this->motionZ != 0)){
-				$friction = $this->getLevel()->getBlock(new Vector3($this->getFloorX(), $this->getFloorY() - 1, $this->getFloorZ()))->getFrictionFactor() * $friction;
-			}
-
-			$this->motionX *= $friction;
+			$this->motionX *= 0;
 			$this->motionY *= 1 - $this->drag;
-			$this->motionZ *= $friction;
+			$this->motionZ *= 0;
 
 			$this->updateMovement();
 
@@ -146,7 +144,7 @@ class Item extends Entity{
 
 	public function saveNBT(){
 		parent::saveNBT();
-		$this->namedtag->Item = new Compound("Item", [
+		$this->namedtag->Item = new CompoundTag("Item", [
 			"id" => new ShortTag("id", $this->item->getId()),
 			"Damage" => new ShortTag("Damage", $this->item->getDamage()),
 			"Count" => new ByteTag("Count", $this->item->getCount())

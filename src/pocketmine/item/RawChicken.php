@@ -19,21 +19,27 @@
  *
 */
 
-namespace pocketmine\nbt\tag;
+namespace pocketmine\item;
 
-use pocketmine\nbt\NBT;
+use pocketmine\entity\Effect;
 
-class End extends Tag{
-
-	public function getType(){
-		return NBT::TAG_End;
+class RawChicken extends Food{
+	public function __construct($meta = 0, $count = 1){
+		parent::__construct(self::RAW_CHICKEN, $meta, $count, "Raw Chicken");
 	}
 
-	public function read(NBT $nbt){
-
+	public function getFoodRestore() : int{
+		return 2;
 	}
 
-	public function write(NBT $nbt){
+	public function getSaturationRestore() : float{
+		return 1.2;
+	}
 
+	public function getAdditionalEffects() : array{
+		if(mt_rand(0, 9) < 3){
+			return Effect::getEffect(Effect::HUNGER)->setDuration(600);
+		}
 	}
 }
+

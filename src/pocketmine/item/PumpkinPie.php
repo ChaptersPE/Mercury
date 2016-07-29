@@ -19,23 +19,19 @@
  *
 */
 
-namespace pocketmine\block;
+namespace pocketmine\item;
 
-
-class NetherReactor extends Solid{
-
-	protected $id = self::NETHER_REACTOR;
-
-	public function __construct($meta = 0){
-		$this->meta = $meta;
+class PumpkinPie extends Food{
+	public function __construct($meta = 0, $count = 1){
+		parent::__construct(self::PUMPKIN_PIE, $meta, $count, "Pumpkin Pie");
 	}
 
-	public function getName(){
-		return "Nether Reactor";
+	public function getFoodRestore() : int{
+		return 8;
 	}
 
-	public function canBeActivated(){
-		return true;
+	public function getSaturationRestore() : float{
+		return 4.8;
 	}
-
 }
+

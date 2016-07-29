@@ -26,7 +26,7 @@ use pocketmine\level\format\generic\BaseLevelProvider;
 use pocketmine\level\Level;
 use pocketmine\nbt\NBT;
 use pocketmine\nbt\tag\ByteTag;
-use pocketmine\nbt\tag\Compound;
+use pocketmine\nbt\tag\CompoundTag;
 use pocketmine\nbt\tag\IntTag;
 use pocketmine\nbt\tag\LongTag;
 use pocketmine\nbt\tag\StringTag;
@@ -81,7 +81,7 @@ class McRegion extends BaseLevelProvider{
 			mkdir($path . "/region", 0777);
 		}
 		//TODO, add extra details
-		$levelData = new Compound("Data", [
+		$levelData = new CompoundTag("Data", [
 			"hardcore" => new ByteTag("hardcore", 0),
 			"initialized" => new ByteTag("initialized", 1),
 			"GameType" => new IntTag("GameType", 0),
@@ -98,10 +98,10 @@ class McRegion extends BaseLevelProvider{
 			"generatorName" => new StringTag("generatorName", "FLAT"),
 			"generatorOptions" => new StringTag("generatorOptions", isset($options["preset"]) ? $options["preset"] : ""),
 			"LevelName" => new StringTag("LevelName", $name),
-			"GameRules" => new Compound("GameRules", [])
+			"GameRules" => new CompoundTag("GameRules", [])
 		]);
 		$nbt = new NBT(NBT::BIG_ENDIAN);
-		$nbt->setData(new Compound("", [
+		$nbt->setData(new CompoundTag("", [
 			"Data" => $levelData
 		]));
 		$buffer = $nbt->writeCompressed();
@@ -113,30 +113,7 @@ class McRegion extends BaseLevelProvider{
 		$z = $chunkZ >> 5;
 	}
 
-	private function updateSignText($text, $lang) {
-		if(empty($text)) {
-			return '';
-		}
-		return str_replace($lang['key'], $lang['val'], $text);
-		
-	}
-	
-	
-	private function getSignSpawnCompound($sign, $lang){
-		return new Compound("", [
-			new StringTag("id", Tile::SIGN),
-			new StringTag("Text1", $this->updateSignText($sign->namedtag['Text1'], $lang)),
-			new StringTag("Text2", $this->updateSignText($sign->namedtag['Text2'], $lang)),
-			new StringTag("Text3", $this->updateSignText($sign->namedtag['Text3'], $lang)),
-			new StringTag("Text4", $this->updateSignText($sign->namedtag['Text4'], $lang)),
-			new IntTag("x", (int) $sign->x),
-			new IntTag("y", (int) $sign->y),
-			new IntTag("z", (int) $sign->z)
-		]);
-	}
-	
-	
-	public function requestChunkTask($x, $z){	
+	public function requestChunkTask($x, $z){
 		$chunk = $this->getChunk($x, $z, false);
 		if(!($chunk instanceof Chunk)){
 			throw new ChunkException("Invalid Chunk sent");
@@ -147,31 +124,31 @@ class McRegion extends BaseLevelProvider{
 		foreach ($translation as $lang => $data) {
 			$signTiles[$lang] = '';
 		}
-		
+
 		$tiles = "";
-		$nbt = new NBT(NBT::LITTLE_ENDIAN);		
+		$nbt = new NBT(NBT::LITTLE_ENDIAN);
 		foreach($chunk->getTiles() as $tile){
-			if($tile instanceof Sign) {				
+			if($tile instanceof Sign) {
 				foreach ($translation as $lang => $data) {
 					$nbt->setData($this->getSignSpawnCompound($tile, $data));
-					$signTiles[$lang] .= $nbt->write();			
+					$signTiles[$lang] .= $nbt->write();
 				}
-				
+
 				continue;
-			}	
+			}
 			if($tile instanceof Spawnable){
 				$nbt->setData($tile->getSpawnCompound());
 				$tiles .= $nbt->write();
 			}
 		}
-		
+
 		$data = array();
 		$data['chunkX'] = $x;
 		$data['chunkZ'] = $z;
 		$data['tiles'] = $tiles;
 		$data['signTiles'] = $signTiles;
 		$data['chunk'] = $chunk->toFastBinary();
-		
+
 		$this->getLevel()->chunkMaker->pushMainToThreadPacket(serialize($data));
 		return null;
 	}
@@ -229,7 +206,7 @@ class McRegion extends BaseLevelProvider{
 			return false;
 		}
 	}
-	
+
 	public function getGenerator(){
 		return $this->levelData["generatorName"];
 	}
